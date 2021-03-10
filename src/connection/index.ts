@@ -1,3 +1,5 @@
+import { RTCPeerConnection } from 'wrtc'
+
 export class ConnectionManager {
   private pool: Map<string, RTCPeerConnection>
   // eslint-disable-next-line no-undef
@@ -13,7 +15,16 @@ export class ConnectionManager {
     this.pool = new Map()
   }
 
+  hasConnection (id: string): boolean {
+    return this.pool.has(id)
+  }
+
   newConnection (id: string): RTCPeerConnection {
+    const existingConnection = this.pool.get(id)
+    if (existingConnection) {
+      console.log('existing connection for ', id)
+      return existingConnection
+    }
     const connection = new RTCPeerConnection(this.config)
     this.pool.set(id, connection)
     return connection
@@ -28,8 +39,8 @@ export class ConnectionManager {
   }
 
   closeConnection (id: string): void {
-    const connection = this.getConnection(id)
-    connection.close()
+    const connection = this.pool.get(id)
+    if (connection)connection.close()
     this.pool.set(id, undefined)
   }
 }
