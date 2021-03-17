@@ -10,22 +10,28 @@ class MediaModule {
   video: RTCVideoStream
   transmitter: Transmitter
 
+  private screenSize: { width: number, height: number}
+
   constructor () {
+    this.screenSize = robot.getScreenSize()
+    console.log(this.screenSize)
+
     this.streamer = new GStreamer()
     this.transmitter = new Transmitter()
 
-    const { width, height } = robot.getScreenSize()
-
     this.video = new RTCVideoStream(
-      width,
-      height,
+      this.screenSize.width,
+      this.screenSize.height,
       this.transmitter
     )
   }
 
   start () {
     pipeline(
-      this.streamer.video(),
+      this.streamer.video(
+        this.screenSize.width,
+        this.screenSize.height
+      ),
       this.video,
       (err) => {
         console.error('error while piping video stream', err)
