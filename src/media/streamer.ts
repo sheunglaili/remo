@@ -65,7 +65,7 @@ class TCPReadStream extends Readable {
       })
     })
 
-    this.tcpServer.listen(0, () => {
+    this.tcpServer.listen(0, '0.0.0.0', () => {
       const addr = this.tcpServer.address()
       console.log(addr)
       if (typeof addr === 'string') {
@@ -113,7 +113,8 @@ export class GStreamer {
           '!',
           'tcpclientsink',
           `host=${dest.address}`,
-          `port=${dest.port}`
+          `port=${dest.port}`,
+          'sync=false'
         ],
         { stdio: 'pipe' }
       )
@@ -146,7 +147,8 @@ export class GStreamer {
           '!',
           'tcpclientsink',
           `host=${dest.address}`,
-          `port=${dest.port}`
+          `port=${dest.port}`,
+          'sync=false'
         ],
         { stdio: 'pipe' }
       )
@@ -158,7 +160,38 @@ export class GStreamer {
       })
       return proc.stdout
     } else if (os === 'win32') {
-      throw new Error('not implemented yet on window platform')
+      const proc = spawn(
+        'gst-launch-1.0',
+        [
+          '-q',
+          'dx9screencapsrc',
+          '!',
+          'glupload',
+          '!',
+          'glcolorconvert',
+          '!',
+          'glcolorscale',
+          '!',
+          'glcolorconvert',
+          '!',
+          'gldownload',
+          '!',
+          'video/x-raw,format=I420,framerate=30/1',
+          '!',
+          'tcpclientsink',
+          `host=${dest.address}`,
+          `port=${dest.port}`,
+          'sync=false'
+        ],
+        { stdio: 'pipe' }
+      )
+      proc.stderr.on('data', (data) => {
+        console.log(Buffer.from(data).toString('utf-8'))
+      })
+      proc.stdout.on('data', (data) => {
+        console.log(Buffer.from(data).toString('utf-8'))
+      })
+      return proc.stdout
     } else {
       throw new Error(`unsupported OS: ${os}`)
     }
