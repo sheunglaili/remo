@@ -65,7 +65,7 @@ class TCPReadStream extends Readable {
       })
     })
 
-    this.tcpServer.listen(0, '0.0.0.0', () => {
+    this.tcpServer.listen(0, '127.0.0.1', () => {
       const addr = this.tcpServer.address()
       console.log(addr)
       if (typeof addr === 'string') {
@@ -164,7 +164,12 @@ export class GStreamer {
         'gst-launch-1.0',
         [
           '-q',
-          'dx9screencapsrc',
+          'dxgiscreencapsrc',
+          'cursor=true',
+          `width=${width}`,
+          `height=${height}`,
+          'x=0',
+          'y=0',
           '!',
           'glupload',
           '!',
@@ -176,7 +181,7 @@ export class GStreamer {
           '!',
           'gldownload',
           '!',
-          'video/x-raw,format=I420,framerate=30/1',
+          'video/x-raw,format=I420,framerate=60/1',
           '!',
           'tcpclientsink',
           `host=${dest.address}`,

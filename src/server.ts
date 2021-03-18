@@ -1,9 +1,9 @@
 import http from 'http'
 import express from 'express'
 import { Server } from 'socket.io'
-import * as robot from 'robotjs'
 import MediaModule from './media'
 import { ConnectionManager } from './connection'
+import { ControlManager } from './control'
 
 const app = express()
 
@@ -21,6 +21,7 @@ const mediaModule = new MediaModule()
 mediaModule.start()
 
 const connectionManager = new ConnectionManager(io)
+const controlManager = new ControlManager()
 connectionManager.on('new-audience', async (id: string) => {
   const connection = connectionManager.newConnection(id)
 
@@ -30,15 +31,8 @@ connectionManager.on('new-audience', async (id: string) => {
   stream.getTracks().forEach(track => connection.addTrack(track, stream))
 
   const dc = connection.createDataChannel('control')
-  const { height, width } = robot.getScreenSize()
-  dc.addEventListener('message', ({ data }) => {
-    const { type, payload } = JSON.parse(data)
-    if (type === 'mouse-move') {
-      // console.log('moving mouse', payload)
-      // console.log('calculated', payload.x * width, payload.y * height)
-      robot.moveMouse(payload.y * height, payload.x * width)
-    }
-  })
+  controlManager.addCandidate(id,dc)
+ 
   connectionManager.connect(id)
 })
 
