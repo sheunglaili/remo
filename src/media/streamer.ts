@@ -4,6 +4,8 @@ import { AddressInfo } from 'net'
 import * as net from 'net'
 import { platform } from 'os'
 import { Readable } from 'stream'
+// @ts-ignore
+import gstreamer from 'gstreamer-superficial'
 import { FPSCounter } from '../utils/fps'
 export class UDPReadStream extends Readable {
   private udpSocket: Socket
@@ -37,7 +39,7 @@ export class UDPReadStream extends Readable {
   }
 }
 
-class TCPReadStream extends Readable {
+export class TCPReadStream extends Readable {
   private tcpServer: net.Server
   private shouldPush: boolean
   constructor (onBind: (addr: AddressInfo) => void) {
@@ -83,6 +85,65 @@ class TCPReadStream extends Readable {
   _destroy (err: Error) {
     console.error('destroyed with error', err)
     this.tcpServer.close()
+  }
+}
+
+class AppSinkReadStream extends Readable {
+  private appsink: any
+  private fpsCounter: FPSCounter;
+  private chunkCount = 0
+  private shouldPush = true;
+  constructor () {
+    super()
+    // eslint-disable-next-line no-new
+    const pipeline = new gstreamer.Pipeline([
+      'avfvideosrc',
+      'capture-screen=true',
+      'capture-screen-cursor=true',
+      '!',
+      'video/x-raw,format=BGRA',
+      '!',
+      'glupload',
+      '!',
+      'glcolorconvert',
+      '!',
+      'glcolorscale',
+      '!',
+      'glcolorconvert',
+      '!',
+      'gldownload',
+      '!',
+      'video/x-raw,format=I420,framerate=30/1',
+      '!',
+      'appsink',
+      'name=sink',
+      'sync=false'
+    ].join(' '))
+    this.appsink = pipeline.findChild('sink')
+    this.fpsCounter = new FPSCounter('app sink fps: ')
+
+    pipeline.play()
+  }
+
+  _calculateFPS = (buf: Buffer) => {
+    this.chunkCount += buf.length
+    if (this.chunkCount >= 1440 * 900 * 1.5) {
+      this.fpsCounter.plusOne()
+      this.chunkCount = 0
+    }
+  }
+
+  _pull = (buffer: Buffer) => {
+    if (buffer && this.shouldPush) {
+      this.shouldPush = this.push(buffer)
+      // this._calculateFPS(buffer)
+      this.appsink.pull(this._pull)
+    }
+  }
+
+  _read () {
+    this.shouldPush = true
+    this.appsink.pull(this._pull)
   }
 }
 
@@ -198,9 +259,10 @@ export class GStreamer {
   }
 
   video (width: number, height: number): Readable {
-    return new TCPReadStream((addr) => {
-      this.recordVideo(addr, width, height)
-    })
+    // return new TCPReadStream((addr) => {
+    //   this.recordVideo(addr, width, height)
+    // })
+    return new AppSinkReadStream()
   }
 
   audio () {
