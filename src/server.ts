@@ -31,8 +31,8 @@ connectionManager.on('new-audience', async (id: string) => {
   stream.getTracks().forEach(track => connection.addTrack(track, stream))
 
   const dc = connection.createDataChannel('control')
-  controlManager.addCandidate(id,dc)
- 
+  controlManager.addCandidate(id, dc)
+
   connectionManager.connect(id)
 })
 

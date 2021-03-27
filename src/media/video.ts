@@ -29,36 +29,37 @@ export class RTCVideoStream extends Writable {
   public lastFrame: Frame;
   private fps:FPSCounter
   constructor (private width: number, private height: number, private trasmitter: Transmitter) {
-    super({ highWaterMark: 131072 })
+    super()
     this.lastFrame = new Frame(this.width, this.height)
     this.fps = new FPSCounter()
   }
 
   _write (chunk: any, encoding: string, next: (error?: Error | null) => void) {
-    process.nextTick(() => {
-      if (encoding === 'buffer') {
-        const buffer = <Buffer>chunk
+    if (encoding === 'buffer') {
+      const buffer = <Buffer>chunk
 
-        let bufferIndex = 0
-        while (!this.lastFrame.isComplete() && bufferIndex < buffer.length) {
-          this.lastFrame.addByte(buffer[bufferIndex++])
-        }
-        // const remains = this.lastFrame.addBytes(buffer)
-
-        if (this.lastFrame.isComplete()) {
-          this.trasmitter.transmitVideo(this.lastFrame)
-          this.lastFrame.reset()
-          this.fps.plusOne()
-        }
-
-        while (bufferIndex < buffer.length) {
-          this.lastFrame.addByte(buffer[bufferIndex++])
-        }
-
-        next()
-      } else {
-        next(new Error('data passed in is not buffer.'))
+      // for (let i = 0, n = buffer.length; i < n; i++) {
+      //   this.lastFrame.addByte(buffer[i])
+      //   if (this.lastFrame.isComplete()) {
+      //     this.trasmitter.transmitVideo(this.lastFrame)
+      //     this.lastFrame.reset()
+      //     // print(this.lastFrame.data, this.lastFrame.width, this.lastFrame.height)
+      //   }
+      // }
+      let index = 0
+      while (!this.lastFrame.isComplete() && index < buffer.length) {
+        this.lastFrame.addByte(buffer[index++])
       }
-    })
+
+      if (this.lastFrame.isComplete()) {
+        this.trasmitter.transmitVideo(this.lastFrame)
+        this.lastFrame.reset()
+        this.fps.plusOne()
+      }
+
+      next()
+    } else {
+      next(new Error('data passed in is not buffer.'))
+    }
   }
 }

@@ -93,41 +93,100 @@ class AppSinkReadStream extends Readable {
   private fpsCounter: FPSCounter;
   private chunkCount = 0
   private shouldPush = true;
-  constructor () {
+  constructor (private width: number, private height: number) {
     super()
     // eslint-disable-next-line no-new
-    const pipeline = new gstreamer.Pipeline([
-      'avfvideosrc',
-      'capture-screen=true',
-      'capture-screen-cursor=true',
-      '!',
-      'video/x-raw,format=BGRA',
-      '!',
-      'glupload',
-      '!',
-      'glcolorconvert',
-      '!',
-      'glcolorscale',
-      '!',
-      'glcolorconvert',
-      '!',
-      'gldownload',
-      '!',
-      'video/x-raw,format=I420,framerate=30/1',
-      '!',
-      'appsink',
-      'name=sink',
-      'sync=false'
-    ].join(' '))
+    const pipeline = new gstreamer.Pipeline(this._getPipeline().join(' '))
     this.appsink = pipeline.findChild('sink')
     this.fpsCounter = new FPSCounter('app sink fps: ')
 
     pipeline.play()
   }
 
+  _getPipeline () {
+    const os = platform()
+    if (os === 'darwin') {
+      return [
+        'avfvideosrc',
+        'capture-screen=true',
+        'capture-screen-cursor=true',
+        '!',
+        'video/x-raw,format=BGRA',
+        '!',
+        'glupload',
+        '!',
+        'glcolorconvert',
+        '!',
+        'glcolorscale',
+        '!',
+        'glcolorconvert',
+        '!',
+        'gldownload',
+        '!',
+        `video/x-raw,height=${this.height},width=${this.width},format=I420,framerate=30/1`,
+        '!',
+        'appsink',
+        'name=sink',
+        'sync=false'
+      ]
+    }
+
+    if (os === 'linux') {
+      return [
+        'ximagesrc',
+        'use-damage=0',
+        '!',
+        'glupload',
+        '!',
+        'glcolorconvert',
+        '!',
+        'glcolorscale',
+        '!',
+        'glcolorconvert',
+        '!',
+        'gldownload',
+        '!',
+        'video/x-raw,format=I420,framerate=30/1',
+        '!',
+        'appsink',
+        'name=sink',
+        'sync=false'
+      ]
+    }
+
+    if (os === 'win32') {
+      return [
+        'dxgiscreencapsrc',
+        'cursor=true',
+          `width=${this.width}`,
+          `height=${this.height}`,
+          'x=0',
+          'y=0',
+          '!',
+          'glupload',
+          '!',
+          'glcolorconvert',
+          '!',
+          'glcolorscale',
+          '!',
+          'glcolorconvert',
+          '!',
+          'gldownload',
+          '!',
+          'video/x-raw,format=I420,framerate=60/1',
+          '!',
+          'appsink',
+          'name=sink',
+          'sync=false'
+      ]
+    }
+
+    throw new Error(`Unsupported OS: ${os}`)
+  }
+
   _calculateFPS = (buf: Buffer) => {
     this.chunkCount += buf.length
-    if (this.chunkCount >= 1440 * 900 * 1.5) {
+    if (this.chunkCount >= this.width * this.height * 1.5) {
       this.fpsCounter.plusOne()
       this.chunkCount = 0
     }
@@ -136,12 +195,12 @@ class AppSinkReadStream extends Readable {
   _pull = (buffer: Buffer) => {
     if (buffer && this.shouldPush) {
       this.shouldPush = this.push(buffer)
-      // this._calculateFPS(buffer)
+      this._calculateFPS(buffer)
       this.appsink.pull(this._pull)
     }
   }
 
-  _read () {
+  _read = () => {
     this.shouldPush = true
     this.appsink.pull(this._pull)
   }
@@ -264,10 +323,7 @@ export class GStreamer {
   }
 
   video (width: number, height: number): Readable {
-    // return new TCPReadStream((addr) => {
-    //   this.recordVideo(addr, width, height)
-    // })
-    return new AppSinkReadStream()
+    return new AppSinkReadStream(width, height)
   }
 
   audio () {
