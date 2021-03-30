@@ -1,10 +1,13 @@
 import { RTCDataChannel, RTCDataChannelEvent } from 'wrtc'
 import { debounce } from 'lodash'
 import * as robot from 'robotjs'
-import { isKeyDownEvent, isMouseClickEvent, isMouseDoubleClickEvent, isMouseMoveEvent } from './helpers'
+
+import ControlState from './state'
+import { isKeyDownEvent, isMouseClickEvent, isMouseDoubleClickEvent, isMouseMoveEvent, isMousePressEvent, isMouseReleaseEvent } from './helpers'
 
 export class ControlManager {
     private screenSize: { width: number, height: number }
+    private state: ControlState
     private channels: Map<string, RTCDataChannel>;
     private active: string;
     constructor () {
@@ -12,8 +15,11 @@ export class ControlManager {
       robot.setMouseDelay(0)
       this.channels = new Map()
       this.controlEventHandler = this.controlEventHandler.bind(this)
+      this.state = new ControlState()
     }
 
+    // TODO: Do not maintain a pool of channe.
+    //       create data channel on demand.
     addCandidate (id: string, dc: RTCDataChannel) {
       if (!this.active) {
         this.active = id
@@ -32,10 +38,17 @@ export class ControlManager {
       try {
         if (isMouseMoveEvent(event)) {
           const { payload } = event
-          robot.moveMouse(
-            payload.y * this.screenSize.height,
-            payload.x * this.screenSize.width
-          )
+          if (this.state.mouse.isDragging) {
+            robot.dragMouse(
+              payload.y * this.screenSize.height,
+              payload.x * this.screenSize.width
+            )
+          } else {
+            robot.moveMouse(
+              payload.y * this.screenSize.height,
+              payload.x * this.screenSize.width
+            )
+          }
         }
 
         if (isMouseClickEvent(event)) {
@@ -48,6 +61,14 @@ export class ControlManager {
           const { payload } = event
           console.log('mouse double-click')
           robot.mouseClick(payload.button, true)
+        }
+
+        if (isMousePressEvent(event)) {
+          this.state.mouse.press()
+        }
+
+        if (isMouseReleaseEvent(event)) {
+          this.state.mouse.release()
         }
 
         if (isKeyDownEvent(event)) {

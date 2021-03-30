@@ -2,17 +2,28 @@ type BaseEvent<T, P> = {
     type: T
     payload: P
 }
+
+type MouseButton = 'left' | 'right'
+
 type MouseMoveEvent = BaseEvent<'mouse-move', {
     x: number,
     y: number
 }>
 
 type MouseClickEvent = BaseEvent<'mouse-click', {
-    button: 'left' | 'right'
+    button: MouseButton
 }>
 
 type MouseDoubleClickEvent = BaseEvent<'mouse-double-click', {
-    button: 'left' | 'right'
+    button: MouseButton
+}>
+
+type MousePressedEvent = BaseEvent<'mouse-pressed', {
+  button: MouseButton
+}>
+
+type MouseReleasedEvent = BaseEvent<'mouse-released', {
+  button: MouseButton
 }>
 
 type KeydownEvent = BaseEvent<'keydown', {
@@ -37,6 +48,14 @@ export function isMouseClickEvent (event: any): event is MouseClickEvent {
 
 export function isMouseDoubleClickEvent (event: any): event is MouseDoubleClickEvent {
   return isOfType<MouseDoubleClickEvent>(event, 'type', 'mouse-double-click')
+}
+
+export function isMousePressEvent (event: any): event is MousePressedEvent {
+  return isOfType<MousePressedEvent>(event, 'type', 'mouse-pressed')
+}
+
+export function isMouseReleaseEvent (event: any): event is MouseReleasedEvent {
+  return isOfType<MouseReleasedEvent>(event, 'type', 'mouse-released')
 }
 
 export function isKeyDownEvent (event: any): event is KeydownEvent {
