@@ -64,11 +64,13 @@ export class ControlManager {
         }
 
         if (isMousePressEvent(event)) {
+          robot.mouseToggle('down', event.payload.button)
           this.state.mouse.press()
         }
 
         if (isMouseReleaseEvent(event)) {
           this.state.mouse.release()
+          robot.mouseToggle('up', event.payload.button)
         }
 
         if (isKeyDownEvent(event)) {
