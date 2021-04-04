@@ -31,6 +31,11 @@ type KeydownEvent = BaseEvent<'keydown', {
     modifiers: ('ctrl' | 'command' | 'shift' | 'alt')[]
 }>
 
+type ScrollEvent = BaseEvent<'scroll', {
+  x: number,
+  y: number
+}>
+
 export const isOfType = <T>(
   varToBeChecked: any,
   propertyToCheckFor: keyof T,
@@ -51,13 +56,17 @@ export function isMouseDoubleClickEvent (event: any): event is MouseDoubleClickE
 }
 
 export function isMousePressEvent (event: any): event is MousePressedEvent {
-  return isOfType<MousePressedEvent>(event, 'type', 'mouse-pressed')
+  return isOfType<MousePressedEvent>(event, 'type', 'mouse-down')
 }
 
 export function isMouseReleaseEvent (event: any): event is MouseReleasedEvent {
-  return isOfType<MouseReleasedEvent>(event, 'type', 'mouse-released')
+  return isOfType<MouseReleasedEvent>(event, 'type', 'mouse-up')
 }
 
 export function isKeyDownEvent (event: any): event is KeydownEvent {
   return isOfType<KeydownEvent>(event, 'type', 'keydown')
+}
+
+export function isScrollEvent (event: any): event is ScrollEvent {
+  return isOfType<ScrollEvent>(event, 'type', 'scroll')
 }

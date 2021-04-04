@@ -3,7 +3,7 @@ import { debounce } from 'lodash'
 import * as robot from 'robotjs'
 
 import ControlState from './state'
-import { isKeyDownEvent, isMouseClickEvent, isMouseDoubleClickEvent, isMouseMoveEvent, isMousePressEvent, isMouseReleaseEvent } from './helpers'
+import { isKeyDownEvent, isMouseClickEvent, isMouseDoubleClickEvent, isMouseMoveEvent, isMousePressEvent, isMouseReleaseEvent, isScrollEvent } from './helpers'
 
 export class ControlManager {
     private screenSize: { width: number, height: number }
@@ -29,7 +29,7 @@ export class ControlManager {
     }
 
     private registerHandler (dc: RTCDataChannel) {
-      dc.addEventListener('message', debounce(this.controlEventHandler), 10, { leading: true, trailing: true })
+      dc.addEventListener('message', debounce(this.controlEventHandler, 10, { leading: true, trailing: true }))
     }
 
     private controlEventHandler ({ data }: RTCDataChannelEvent) {
@@ -38,15 +38,19 @@ export class ControlManager {
       try {
         if (isMouseMoveEvent(event)) {
           const { payload } = event
+          const { x, y } = robot.getMousePos()
+          const newX = payload.x * this.screenSize.width + x
+          const newY = payload.y * this.screenSize.height + y
+
           if (this.state.mouse.isDragging) {
             robot.dragMouse(
-              payload.y * this.screenSize.height,
-              payload.x * this.screenSize.width
+              newX,
+              newY
             )
           } else {
             robot.moveMouse(
-              payload.y * this.screenSize.height,
-              payload.x * this.screenSize.width
+              newX,
+              newY
             )
           }
         }
@@ -54,7 +58,7 @@ export class ControlManager {
         if (isMouseClickEvent(event)) {
           const { payload } = event
           console.log(payload)
-          robot.mouseClick(payload.button, true)
+          robot.mouseClick(payload.button, false)
         }
 
         if (isMouseDoubleClickEvent(event)) {
@@ -79,6 +83,15 @@ export class ControlManager {
           robot.keyTap(
             payload.key,
             payload.modifiers
+          )
+        }
+
+        if (isScrollEvent(event)) {
+          const { payload } = event
+
+          robot.scrollMouse(
+            payload.x,
+            payload.y
           )
         }
       } catch (err) {

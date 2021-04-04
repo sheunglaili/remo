@@ -22,10 +22,9 @@ mediaModule.start()
 
 const connectionManager = new ConnectionManager(io)
 const controlManager = new ControlManager()
+const stream = mediaModule.output()
 connectionManager.on('new-audience', async (id: string) => {
   const connection = connectionManager.newConnection(id)
-
-  const stream = mediaModule.output()
 
   // stream the media to peer.
   stream.getTracks().forEach(track => connection.addTrack(track, stream))
