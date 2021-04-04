@@ -22,17 +22,19 @@ mediaModule.start()
 
 const connectionManager = new ConnectionManager(io)
 const controlManager = new ControlManager()
-const stream = mediaModule.output()
 connectionManager.on('new-audience', async (id: string) => {
   const connection = connectionManager.newConnection(id)
-
+  const stream = mediaModule.output()
   // stream the media to peer.
   stream.getTracks().forEach(track => connection.addTrack(track, stream))
 
   const dc = connection.createDataChannel('control')
   controlManager.addCandidate(id, dc)
 
-  connectionManager.connect(id)
+  await connectionManager.connect(id)
+})
+connectionManager.on('disconnect', async (id: string) => {
+  controlManager.removeCandidate(id)
 })
 
 httpServer.listen(port, '0.0.0.0', () => console.log(`Server is running on port: ${port}`))

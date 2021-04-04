@@ -9,11 +9,11 @@ export class ControlManager {
     private screenSize: { width: number, height: number }
     private state: ControlState
     private channels: Map<string, RTCDataChannel>;
-    private active: string;
+    private active: RTCDataChannel;
     constructor () {
       this.screenSize = robot.getScreenSize()
       robot.setMouseDelay(0)
-      this.channels = new Map()
+      // this.channels = new Map()
       this.controlEventHandler = this.controlEventHandler.bind(this)
       this.state = new ControlState()
     }
@@ -21,11 +21,12 @@ export class ControlManager {
     // TODO: Do not maintain a pool of channe.
     //       create data channel on demand.
     addCandidate (id: string, dc: RTCDataChannel) {
-      if (!this.active) {
-        this.active = id
-        this.registerHandler(dc)
-      }
-      this.channels.set(id, dc)
+      this.active = dc
+    }
+
+    removeCandidate (id: string) {
+      this.active?.close()
+      this.active = undefined
     }
 
     private registerHandler (dc: RTCDataChannel) {

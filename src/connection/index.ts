@@ -26,9 +26,12 @@ export class ConnectionManager extends EventEmitter {
     }
 
     // emit the shortDescriptionInit to client
-    const SDI = await connection.createOffer()
+    const SDI = await connection.createOffer({
+      iceRestart: true
+    })
     await connection.setLocalDescription(SDI)
     socket.emit('offer', id, connection.localDescription)
+    console.log('sent offer to ', id)
   }
 
   private setup () {
@@ -40,7 +43,6 @@ export class ConnectionManager extends EventEmitter {
         // emit event, relay on user to call connect to establish the connection
         // after finishing the setup.
         this.emit('new-audience', socket.id)
-        console.log(socket.id)
       })
 
       socket.on('answer', (id, description) => {
@@ -57,6 +59,7 @@ export class ConnectionManager extends EventEmitter {
       socket.on('disconnect', () => {
         console.log('disconnecting ', socket.id)
         this.closeConnection(socket.id)
+        this.emit('disconnect', socket.id)
       })
     })
   }
@@ -71,6 +74,7 @@ export class ConnectionManager extends EventEmitter {
       console.log('existing connection for ', id)
       return existingConnection
     }
+    console.log('creating new connection for ', id)
     const connection = new RTCPeerConnection(this.config)
     this.pool.set(id, connection)
     return connection
@@ -86,7 +90,12 @@ export class ConnectionManager extends EventEmitter {
 
   closeConnection (id: string): void {
     const connection = this.pool.get(id)
-    if (connection)connection.close()
+    if (connection) {
+      console.log('closing connection for ', id)
+      connection.close()
+    } else {
+      console.log(id, ' not found')
+    }
     this.pool.set(id, undefined)
   }
 }
