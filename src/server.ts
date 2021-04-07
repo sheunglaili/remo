@@ -12,6 +12,7 @@ const httpServer = http.createServer(app)
 const port = parseInt(process.env.PORT, 10) || 3000
 
 const io = new Server(httpServer, {
+  transports: ['websocket'],
   cors: {
     origin: '*',
     methods: ['GET', 'POST']

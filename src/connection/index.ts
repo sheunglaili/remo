@@ -1,15 +1,11 @@
 import EventEmitter from 'events'
 import { Server, Socket } from 'socket.io'
-import { RTCPeerConnection } from 'wrtc'
+import { RTCPeerConnection, RTCConfiguration } from 'wrtc'
 
 export class ConnectionManager extends EventEmitter {
   private pool: Map<string, RTCPeerConnection>
   // eslint-disable-next-line no-undef
-  constructor (private io: Server, private config: RTCConfiguration = {
-    iceServers: [
-      { urls: ['stun:stun.l.google.com:19302'] }
-    ]
-  }) {
+  constructor (private io: Server) {
     super()
     this.pool = new Map()
     this.setup()
@@ -30,7 +26,7 @@ export class ConnectionManager extends EventEmitter {
       iceRestart: true
     })
     await connection.setLocalDescription(SDI)
-    socket.emit('offer', id, connection.localDescription)
+    socket.emit('offer', id, SDI)
     console.log('sent offer to ', id)
   }
 
@@ -68,14 +64,18 @@ export class ConnectionManager extends EventEmitter {
     return this.pool.has(id)
   }
 
-  newConnection (id: string): RTCPeerConnection {
+  newConnection (id: string, config: RTCConfiguration = {
+    iceServers: [
+      { urls: ['stun:stun.l.google.com:19302'] }
+    ]
+  }): RTCPeerConnection {
     const existingConnection = this.pool.get(id)
     if (existingConnection) {
       console.log('existing connection for ', id)
       return existingConnection
     }
     console.log('creating new connection for ', id)
-    const connection = new RTCPeerConnection(this.config)
+    const connection = new RTCPeerConnection(config)
     this.pool.set(id, connection)
     return connection
   }
@@ -96,6 +96,6 @@ export class ConnectionManager extends EventEmitter {
     } else {
       console.log(id, ' not found')
     }
-    this.pool.set(id, undefined)
+    this.pool.delete(id)
   }
 }

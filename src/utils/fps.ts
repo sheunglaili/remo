@@ -17,7 +17,7 @@ export class FPSCounter {
       this.frameElapsed.push(elapsed)
       if (!this.timer) {
         this.timer = setInterval(() => {
-          this.log()
+          // this.log()
         }, 1000)
       }
     }

@@ -37,15 +37,19 @@ export class RTCVideoStream extends Writable {
   _write (chunk: any, encoding: string, next: (error?: Error | null) => void) {
     if (encoding === 'buffer') {
       const buffer = <Buffer>chunk
+      // console.log('buffer.length', buffer.length)
+      // console.log(this.lastFrame.data.length)
 
-      // for (let i = 0, n = buffer.length; i < n; i++) {
-      //   this.lastFrame.addByte(buffer[i])
-      //   if (this.lastFrame.isComplete()) {
-      //     this.trasmitter.transmitVideo(this.lastFrame)
-      //     this.lastFrame.reset()
-      //     // print(this.lastFrame.data, this.lastFrame.width, this.lastFrame.height)
-      //   }
-      // }
+      if (buffer.length === this.lastFrame.data.length) {
+        this.trasmitter.transmitVideo({
+          width: this.width,
+          height: this.height,
+          data: new Uint8ClampedArray(buffer)
+        })
+        this.fps.plusOne()
+        return next()
+      }
+
       let index = 0
       while (!this.lastFrame.isComplete() && index < buffer.length) {
         this.lastFrame.addByte(buffer[index++])
